@@ -3,5 +3,38 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
+    "ngx-growthbook": {
+      "projectType": "library",
+      "root": "projects/ngx-growthbook",
+      "sourceRoot": "projects/ngx-growthbook/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/ngx-growthbook/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ngx-growthbook/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ngx-growthbook/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "projects/ngx-growthbook/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
+    }
   }
 }
