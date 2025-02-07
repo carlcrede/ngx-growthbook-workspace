@@ -5,7 +5,18 @@ import {
   Attributes,
   RefreshFeaturesOptions,
 } from '@growthbook/growthbook';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, Observable } from 'rxjs';
+
+export interface FeatureResult<T = any> {
+  value: T;
+  on: boolean;
+  off: boolean;
+  source: string;
+  experiment?: {
+    key: string;
+    variation: number;
+  };
+}
 
 @Injectable({
   providedIn: 'root',
@@ -26,6 +37,14 @@ export class NgxGrowthbookService implements OnDestroy {
   }
 
   async init(config: Context) {
+    // Add console.log to debug
+    
+    if (!config.clientKey) {
+      throw new Error('GrowthBook clientKey is required');
+    }
+    
+    console.log('Initializing GrowthBook');
+
     this.growthBook = new GrowthBook({
       enableDevMode: true,
       subscribeToChanges: true,
@@ -56,7 +75,9 @@ export class NgxGrowthbookService implements OnDestroy {
 
   subscribe(callback: (n: number) => void) {
     callback(0);
-    return this.growthBookSource.pipe(takeUntil(this.destroy$)).subscribe();
+    return this.growthBookSource.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      callback;
+    });
   }
 
   public loadFeatures(): Promise<void> {
@@ -128,5 +149,61 @@ export class NgxGrowthbookService implements OnDestroy {
 
   public getExperiments() {
     return this.growthBook.getExperiments();
+  }
+
+  /**
+   * Evaluates a feature and returns an observable that will emit whenever the feature changes
+   * @param featureKey The feature key to evaluate
+   * @param defaultValue The default value if the feature is not found
+   */
+  public evaluateFeature<T>(featureKey: string, defaultValue?: T) {
+    const evaluate = () => {
+      const result = this.growthBook.evalFeature(featureKey);
+      return {
+        value: result.value ?? defaultValue,
+        on: result.on,
+        off: result.off,
+        source: result.source,
+        experiment: result.experiment ? {
+          key: result.experiment.key,
+          variation: result.experimentResult?.variationId ?? 0
+        } : undefined
+      } as FeatureResult<T>;
+    };
+
+    // Initial evaluation
+    const initial = evaluate();
+    
+    // Create an observable that emits whenever features are updated
+    return new Observable<FeatureResult<T>>(subscriber => {
+      subscriber.next(initial);
+      
+      const subscription = this.growthBookSource
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => {
+          subscriber.next(evaluate());
+        });
+
+      return () => subscription.unsubscribe();
+    });
+  }
+
+  /**
+   * Evaluates a feature and returns the current value synchronously
+   * @param featureKey The feature key to evaluate
+   * @param defaultValue The default value if the feature is not found
+   */
+  public evaluateFeatureSync<T>(featureKey: string, defaultValue?: T): FeatureResult<T> {
+    const result = this.growthBook.evalFeature(featureKey);
+    return {
+      value: result.value ?? defaultValue,
+      on: result.on,
+      off: result.off,
+      source: result.source,
+      experiment: result.experiment ? {
+        key: result.experiment.key,
+        variation: result.experimentResult?.variationId ?? 0
+      } : undefined
+    };
   }
 }

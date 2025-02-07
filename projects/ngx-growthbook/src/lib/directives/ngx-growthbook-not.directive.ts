@@ -11,6 +11,7 @@ import { NgxGrowthbookService } from '../ngx-growthbook.service';
 
 @Directive({
   selector: '[growthbookNot]',
+  standalone: true,
 })
 export class GrowthBookNotDirective implements OnInit, OnDestroy {
   private hasView: boolean = false;
