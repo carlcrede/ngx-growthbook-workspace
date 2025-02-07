@@ -4,19 +4,11 @@ import {
   Context,
   Attributes,
   RefreshFeaturesOptions,
+  FeatureResult,
 } from '@growthbook/growthbook';
 import { Subject, takeUntil, Observable } from 'rxjs';
 
-export interface FeatureResult<T = any> {
-  value: T;
-  on: boolean;
-  off: boolean;
-  source: string;
-  experiment?: {
-    key: string;
-    variation: number;
-  };
-}
+export { type FeatureResult } from '@growthbook/growthbook';
 
 @Injectable({
   providedIn: 'root',
@@ -36,9 +28,7 @@ export class NgxGrowthbookService implements OnDestroy {
     this.destroy$.complete();
   }
 
-  async init(config: Context) {
-    // Add console.log to debug
-    
+  async init(config: Context) {    
     if (!config.clientKey) {
       throw new Error('GrowthBook clientKey is required');
     }
@@ -159,16 +149,7 @@ export class NgxGrowthbookService implements OnDestroy {
   public evaluateFeature<T>(featureKey: string, defaultValue?: T) {
     const evaluate = () => {
       const result = this.growthBook.evalFeature(featureKey);
-      return {
-        value: result.value ?? defaultValue,
-        on: result.on,
-        off: result.off,
-        source: result.source,
-        experiment: result.experiment ? {
-          key: result.experiment.key,
-          variation: result.experimentResult?.variationId ?? 0
-        } : undefined
-      } as FeatureResult<T>;
+      return result;
     };
 
     // Initial evaluation
@@ -195,15 +176,6 @@ export class NgxGrowthbookService implements OnDestroy {
    */
   public evaluateFeatureSync<T>(featureKey: string, defaultValue?: T): FeatureResult<T> {
     const result = this.growthBook.evalFeature(featureKey);
-    return {
-      value: result.value ?? defaultValue,
-      on: result.on,
-      off: result.off,
-      source: result.source,
-      experiment: result.experiment ? {
-        key: result.experiment.key,
-        variation: result.experimentResult?.variationId ?? 0
-      } : undefined
-    };
+    return result;
   }
 }

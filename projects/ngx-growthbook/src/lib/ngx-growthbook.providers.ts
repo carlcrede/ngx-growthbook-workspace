@@ -17,7 +17,6 @@ export function setupGrowthbookFactory(
   context: Context,
 ) {
   return () => {
-    console.log('Setting up GrowthBook with context:', context);
     if (!context.clientKey) {
       throw new Error('GrowthBook clientKey is required in context');
     }
