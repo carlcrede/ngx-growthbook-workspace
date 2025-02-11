@@ -1,45 +1,38 @@
-import { APP_INITIALIZER, Injector, Provider } from '@angular/core';
+import {
+  inject,
+  provideAppInitializer,
+  Provider,
+  makeEnvironmentProviders,
+} from '@angular/core';
 import { NGX_GROWTHBOOK_CONFIG_TOKEN } from './ngx-growthbook.tokens';
 import { NgxGrowthbookService } from './ngx-growthbook.service';
-import { Context } from '@growthbook/growthbook';
+import { NgxGrowthbookConfiguration } from './ngx-growthbook.config';
 
-
-function initializeGrowthbook(injector: Injector) {
-  return async () => {
-    const config = injector.get(NGX_GROWTHBOOK_CONFIG_TOKEN);
-    const growthbookService = injector.get(NgxGrowthbookService);
-    await growthbookService.init(config);
-  };
-}
-
-export function setupGrowthbookFactory(
-  growthbookService: NgxGrowthbookService,
-  context: Context,
-) {
-  return () => {
-    if (!context.clientKey) {
-      throw new Error('GrowthBook clientKey is required in context');
-    }
-    return growthbookService.init(context);
-  };
-}
-
-export function provideGrowthBook(context: Context): Provider[] {
-  if (!context.clientKey) {
+export function provideNgxGrowthbook(config: NgxGrowthbookConfiguration) {
+  if (!config.clientKey) {
     throw new Error('GrowthBook clientKey is required');
   }
 
-  return [
+  const providers: Provider[] = [
     {
-      provide: NgxGrowthbookService,
-      useClass: NgxGrowthbookService,
+      provide: NGX_GROWTHBOOK_CONFIG_TOKEN,
+      useValue: config,
     },
-    {
-      provide: APP_INITIALIZER,
-      useFactory: (growthbookService: NgxGrowthbookService) => 
-        setupGrowthbookFactory(growthbookService, context),
-      multi: true,
-      deps: [NgxGrowthbookService],
-    },
+    NgxGrowthbookService,
   ];
+
+  if (config.trackingService) {
+    providers.push(config.trackingService);
+  }
+
+  return makeEnvironmentProviders([
+    ...providers,
+    provideAppInitializer(async () => {
+      const growthbookService = inject(NgxGrowthbookService);
+      const trackingService = config.trackingService
+        ? inject(config.trackingService)
+        : null;
+      await growthbookService.init(config, trackingService);
+    }),
+  ]);
 }

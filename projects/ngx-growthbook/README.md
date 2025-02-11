@@ -1,19 +1,249 @@
 # NgxGrowthbook
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.0.
+An Angular wrapper for GrowthBook, providing feature flags and A/B testing capabilities with full TypeScript support.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Installation
 
 ```bash
-ng generate component component-name
+npm install @growthbook/growthbook ngx-growthbook
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Setup
 
-```bash
-ng generate --help
+1. Import and configure GrowthBook in your app.config.ts:
+
+```typescript
+import { provideNgxGrowthbook } from "ngx-growthbook";
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideNgxGrowthbook({
+      clientKey: "your-growthbook-client-key",
+      enableDevMode: true, // optional
+      backgroundSync: true, // optional
+      subscribeToChanges: true, // optional
+      trackingService: MyAnalyticsService, // optional
+    }),
+  ],
+};
+```
+
+2. (Optional) Implement tracking for experiments and feature uasge:
+
+- By providing a trackingCallback and onFeatureUsage callback:
+
+```typescript
+import { provideNgxGrowthbook } from "ngx-growthbook";
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideNgxGrowthbook({
+      subscribeToChanges: true,
+      backgroundSync: true,
+      apiHost: "https://cdn.growthbook.io",
+      clientKey: "sdk-eeaqNb4SLXF4xjHp",
+      enableDevMode: true,
+      trackingCallback: (experiment, result) => {
+        console.log(`Experiment ${experiment} viewed with variant ${result.variationId}`);
+        // track event..
+      },
+      onFeatureUsage: (feature, result) => {
+        console.log(`Feature ${feature} used with value ${result.value}`);
+        // track feature usage..
+      },
+    }),
+  ],
+};
+```
+
+- By providing a tracking service, which implements the `TrackingService` interface:
+```typescript
+import { Injectable } from "@angular/core";
+import { TrackingService, Result, FeatureResult } from "ngx-growthbook";
+
+@Injectable({ providedIn: "root" })
+export class MyAnalyticsService implements TrackingService {
+  trackExperiment(experiment: string, result: Result<any>) {
+    // Track experiment exposure
+    analytics.track("Experiment Viewed", {
+      experimentId: experiment,
+      variant: result.variationId,
+    });
+  }
+
+  trackFeature(featureKey: string, result: FeatureResult<any>) {
+    // Track feature usage
+    analytics.track("Feature Used", {
+      feature: featureKey,
+      value: result.value,
+    });
+  }
+}
+
+import { provideNgxGrowthbook } from "ngx-growthbook";
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideNgxGrowthbook({
+      subscribeToChanges: true,
+      backgroundSync: true,
+      apiHost: "https://cdn.growthbook.io",
+      clientKey: "sdk-eeaqNb4SLXF4xjHp",
+      enableDevMode: true,
+      trackingService: MyAnalyticsService,
+    }),
+  ],
+};
+```
+
+## Additional setup
+### Attribute updates
+Attributes can be set in config when initializing the service, or updated later using the `updateAttributes` method.
+However you may want to update attributes in your app in certain cases, for example when a user logs in / out.
+```typescript
+this.growthbook.updateAttributes({
+  subscriptionTier: "premium",
+});
+```
+
+### URL update
+The GrowthBook SDK will usually automatically update the URL when the feature state changes.
+However you may want to update the current URL in your app. This may be important if using Visual Experiments. One approach is to update the URL on the router level.
+It can be done like so:
+```typescript
+export class AppRoutingModule {
+  constructor(
+    private router: Router,
+    private growthbook: NgxGrowthbookService,
+  ) {
+    this.router.events.subscribe({
+      next: (event: Event) => {
+        if (event instanceof NavigationEnd) {
+          this.growthbook.setURL(window.location.href);
+          this.growthbook.updateAttributes({ url: window.location.href });
+          this.growthbook.refreshFeatures();
+        }
+      },
+      error: (err) => console.error(err),
+    });
+  }
+}
+```
+
+## Usage
+
+### 1. Observable Approach
+
+```typescript
+export class YourComponent implements OnInit {
+  feature$: Observable<FeatureResult<string>>;
+
+  constructor(private growthbook: NgxGrowthbookService) {
+    this.feature$ = this.growthbook.evaluateFeature<string>("feature-key", "default-value");
+  }
+}
+```
+
+### 2. Sync Evaluation
+
+```typescript
+export class YourComponent {
+  feature: FeatureResult<boolean>;
+
+  constructor(private growthbook: NgxGrowthbookService) {
+    this.feature = this.growthbook.evaluateFeatureSync<boolean>("feature-key", false);
+  }
+}
+```
+
+### 3. Template Usage
+
+```html
+@if (growthbook.isOn('feature-key')) {
+   <div>Feature is enabled!</div>
+}
+```
+
+### Available Methods
+
+#### Feature Flags
+
+```typescript
+// Check if a feature is enabled
+growthbook.isOn("feature-key");
+
+// Get feature value
+growthbook.getFeatureValue("feature-key", defaultValue);
+
+// Evaluate feature with full result
+growthbook.evalFeature("feature-key");
+
+// Reactive feature evaluation
+growthbook.evaluateFeature("feature-key").subscribe((result) => {
+  console.log("Feature status:", result.on);
+  console.log("Feature value:", result.value);
+});
+```
+
+#### Attributes
+
+```typescript
+// Set user attributes
+growthbook.setAttributes({
+  id: "user-123",
+  deviceId: "device-456",
+  company: "acme",
+});
+
+// Update attributes
+growthbook.updateAttributes({
+  subscriptionTier: "premium",
+});
+```
+
+#### Other Methods
+
+```typescript
+// Refresh features
+growthbook.refreshFeatures();
+
+// Set URL (important for Visual Experiments)
+growthbook.setURL("http://my-web.site/some-route");
+
+// Get current attributes
+growthbook.getAttributes();
+
+// Get all features
+growthbook.getFeatures();
+
+// Get running experiments
+growthbook.getExperiments();
+```
+
+## Configuration Options
+
+| Option             | Type                  | Description                               |
+| ------------------ | --------------------- | ----------------------------------------- |
+| clientKey          | string                | Your GrowthBook client key (required)     |
+| enableDevMode      | boolean               | Enable development mode                   |
+| backgroundSync     | boolean               | Auto-refresh features                     |
+| subscribeToChanges | boolean               | Enable real-time updates                  |
+| trackingService    | Type<TrackingService> | Service for tracking experiments/features |
+| apiHost            | string                | The GrowthBook API host (default: "https://cdn.growthbook.io") |
+| trackingCallback   | (experiment: string, result: Result<any>) => void | Callback for tracking experiments |
+| onFeatureUsage     | (feature: string, result: FeatureResult<any>) => void | Callback for tracking feature usage |
+
+## TypeScript Support
+
+The library provides full TypeScript support for feature values and experiment results:
+
+```typescript
+interface MyFeature {
+  color: string;
+  size: number;
+}
+
+growthbook.evaluateFeature<MyFeature>("feature-key").subscribe((result) => {
+  const value = result.value; // typed as MyFeature
+});
 ```
 
 ## Building
@@ -24,40 +254,20 @@ To build the library, run:
 ng build ngx-growthbook
 ```
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
+The build artifacts will be stored in the `dist/` directory.
 
-### Publishing the Library
+## Running Tests
 
-Once the project is built, you can publish your library by following these steps:
-
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/ngx-growthbook
-   ```
-
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Execute unit tests via [Karma](https://karma-runner.github.io):
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## Contributing
 
-For end-to-end (e2e) testing, run:
+Contributions are welcome! Please submit pull requests for any improvements.
 
-```bash
-ng e2e
-```
+## License
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+MIT
