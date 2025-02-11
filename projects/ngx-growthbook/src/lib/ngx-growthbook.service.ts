@@ -56,7 +56,7 @@ export class NgxGrowthbookService implements OnDestroy {
       ...config,
     });
 
-    await this.growthBook.loadFeatures();
+    await this.growthBook.init({ skipCache: true, streaming: true });
 
     this.growthBook.setRenderer(() => {
       this.triggerUpdate();
