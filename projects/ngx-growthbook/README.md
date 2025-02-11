@@ -39,8 +39,8 @@ export const appConfig: ApplicationConfig = {
     provideNgxGrowthbook({
       subscribeToChanges: true,
       backgroundSync: true,
-      apiHost: "https://cdn.growthbook.io",
-      clientKey: "sdk-eeaqNb4SLXF4xjHp",
+      apiHost: "your-growthbook-api-host (default: https://cdn.growthbook.io)",
+      clientKey: "your-growthbook-client-key",
       enableDevMode: true,
       trackingCallback: (experiment, result) => {
         console.log(`Experiment ${experiment} viewed with variant ${result.variationId}`);
@@ -85,8 +85,8 @@ export const appConfig: ApplicationConfig = {
     provideNgxGrowthbook({
       subscribeToChanges: true,
       backgroundSync: true,
-      apiHost: "https://cdn.growthbook.io",
-      clientKey: "sdk-eeaqNb4SLXF4xjHp",
+      apiHost: "your-growthbook-api-host (default: https://cdn.growthbook.io)",
+      clientKey: "your-growthbook-client-key",
       enableDevMode: true,
       trackingService: MyAnalyticsService,
     }),
@@ -97,6 +97,17 @@ export const appConfig: ApplicationConfig = {
 ## Additional setup
 ### Attribute updates
 Attributes can be set in config when initializing the service, or updated later using the `updateAttributes` method.
+
+```typescript
+growthbook.setAttributes({
+  id: "some-unique-user-id",
+  deviceId: "some-unique-device-id",
+  company: "some-company-name",
+  ...your other growthbook attributes
+});
+```
+
+
 However you may want to update attributes in your app in certain cases, for example when a user logs in / out.
 ```typescript
 this.growthbook.updateAttributes({

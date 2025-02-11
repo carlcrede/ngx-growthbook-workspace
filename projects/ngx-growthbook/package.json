@@ -1,6 +1,29 @@
 {
   "name": "ngx-growthbook",
-  "version": "1.0.0",
+  "description": "Angular library for GrowthBook",
+  "author": {
+    "name": "Christian Hasselbalch",
+    "email": "carlcrede@gmail.com"
+  },
+  "readme": "https://github.com/carlcrede/ngx-growthbook-workspace/blob/master/projects/ngx-growthbook/README.md",
+  "homepage": "https://github.com/carlcrede/ngx-growthbook-workspace/tree/master/projects/ngx-growthbook",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carlcrede/ngx-growthbook-workspace/tree/master/projects/ngx-growthbook"
+  },
+  "version": "1.0.1",
+  "license": "MIT",
+  "keywords": [
+    "angular",
+    "growthbook",
+    "growthbook-angular",
+    "growthbook-angular-library",
+    "feature-flags",
+    "feature-toggles",
+    "feature-management",
+    "feature-flags-angular",
+    "feature-flags-angular-library"
+  ],
   "peerDependencies": {
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0",
